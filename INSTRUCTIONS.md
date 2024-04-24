@@ -30,10 +30,28 @@ echo \
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-
 # Install required go version
 wget https://go.dev/dl/go1.22.1.linux-arm64.tar.gz
 sudo tar -C /usr/local -xzf go1.22.1.linux-arm64.tar.gz
+
+# Install nginx
+sudo apt update
+sudo apt install nginx
+
+# Paste in the nginx config
+nano /etc/nginx/conf.d/excalidraw.conf
+# Paste the nginx-excalidraw.conf
+sudo nano /etc/nginx/nginx.conf
+# comment out enabled-sites
+
+
+# Install the cert after nginx
+sudo apt install certbot
+sudo certbot --nginx -d draw.lumonic.com
+sudo apt-get install python3-certbot-nginx
+sudo certbot --nginx -d draw.lumonic.com
+
+sudo service nginx restart
 
 # Add Go binary path to bashrc
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.zshrc
@@ -70,6 +88,9 @@ git apply ../frontend.patch
 cd ../
 sudo docker build -t exalidraw-ui-build excalidraw -f ui-build.Dockerfile
 sudo docker run -v ${PWD}/:/pwd/ -it exalidraw-ui-build cp -r /frontend /pwd
+
+# Make dir for logs
+mkdir /var/www/excalidraw-complete/logs
 
 # Compile the go application
 go build -o excalidraw-complete main.go
