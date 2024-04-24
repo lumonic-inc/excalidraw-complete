@@ -1,36 +1,44 @@
-#!/bin/bash
+### Setup Instructions 
+This fork exists to override the URLs before it is compiled.
 
 ```
 # Update apt package index
 sudo apt update
 
+# Install zsh
+sudo apt install -y zsh && \
+sudo apt-get install -y powerline fonts-powerline && \
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
+sudo chsh -s /bin/zsh ubuntu
+nano ~/.zshrc 
+export PROMPT="%F{magenta}[HOSTED]:$EC2_INSTANCE_ID%f $PROMPT"
+# Set theme
+ZSH_THEME="sonicradish"
+
 # Install prerequisite packages
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add Docker's GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Add Docker repository to APT sources
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-
-# Update package database with Docker packages
-sudo apt update
-
-# Check Docker version candidate
-apt-cache policy docker-ce
-
-# Install Docker
-sudo apt install -y docker-ce
 
 # Install required go version
-sudo apt-get remove --purge golang-go
-wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.22.1.linux-arm64.tar.gz
+sudo tar -C /usr/local -xzf go1.22.1.linux-arm64.tar.gz
 
 # Add Go binary path to bashrc
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-echo 'export PATH=$PATH:/usr/bin' >> ~/.bashrc
-source ~/.bashrc
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.zshrc
+echo 'export PATH=$PATH:/usr/bin' >> ~/.zshrc
+source ~/.zshrc
 
 # Prompt user to paste SSH key
 echo "Please paste your SSH key below and press Enter:"
@@ -48,6 +56,7 @@ echo "Host github
     User ubuntu" >> ~/.ssh/config
 
 # Change ownership of /var/www
+sudo mkdir /var/www
 sudo chown ubuntu:ubuntu /var/www
 cd /var/www
 
@@ -60,7 +69,7 @@ git checkout 7582_fix_docker_build
 git apply ../frontend.patch
 cd ../
 sudo docker build -t exalidraw-ui-build excalidraw -f ui-build.Dockerfile
-docker run -v ${PWD}/:/pwd/ -it exalidraw-ui-build cp -r /frontend /pwd
+sudo docker run -v ${PWD}/:/pwd/ -it exalidraw-ui-build cp -r /frontend /pwd
 
 # Compile the go application
 go build -o excalidraw-complete main.go
